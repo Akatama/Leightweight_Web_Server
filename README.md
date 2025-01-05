@@ -8,7 +8,7 @@ Second, go to the root of the project and then run
 sudo docker compose up --build -d --scale flask=2
 ```
 
-Third, go to https://localhost/
+Third, go to http://localhost/
 
 # Tear down
 Just run
