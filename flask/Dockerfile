@@ -1,28 +1,46 @@
+#----------------- Base ----------------------------------------------------#
+FROM python:3.11.10-slim AS base
+
+# Tweak Python to run better in Docker
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+
 # ---------------- Stage 1 -------------------------------------------------#
-FROM python:3.11.10-alpine3.20 AS reqs
+FROM base AS reqs
 
-RUN mkdir -p /var/www/html/Geocoding-Web-Service
+WORKDIR /var/www/html/Geocoding-Web-Service
 
-WORKDIR /var/www/html/
+RUN python3 -m venv .venv
 
-COPY ./Geocoding-Web-Service/ ./Geocoding-Web-Service/
+ENV PATH="/var/www/html/Geocoding-Web-Service/.venv/bin:$PATH"
 
-RUN pip install --no-cache-dir -r ./Geocoding-Web-Service/requirements.txt
+COPY ./Geocoding-Web-Service/requirements.txt ./
 
-RUN rm ./Geocoding-Web-Service/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+COPY ./Geocoding-Web-Service/ ./
+
+RUN rm requirements.txt
 
 # ---------------- Stage 2 -------------------------------------------------#
 
-FROM python:3.11.10-alpine3.20
+FROM base AS run
 
-RUN mkdir -p /var/www/html/Geocoding-Web-Service
+RUN addgroup --gid 1001 --system nonroot && \
+    adduser --no-create-home --shell /bin/false \
+        --disabled-password --uid 1001 --system --group nonroot
 
-WORKDIR /var/www/html/
+USER nonroot:nonroot
 
-COPY --from=reqs /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+WORKDIR /var/www/html/Geocoding-Web-Service/
 
-COPY --from=reqs /var/www/html/Geocoding-Web-Service/ ./Geocoding-Web-Service/
+ENV VIRTUAL_ENV=/var/www/html/Geocoding-Web-Service/.venv/bin \
+    PATH="/var/www/html/Geocoding-Web-Service/.venv/bin:$PATH"
+
+COPY --from=reqs --chown=nonroot:nonroot /var/www/html/Geocoding-Web-Service ./
 
 EXPOSE 5000
 
-ENTRYPOINT [ "python3", "./Geocoding-Web-Service/app.py" ]
+ENTRYPOINT [ "python3", "./app.py" ]
