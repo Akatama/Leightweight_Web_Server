@@ -20,9 +20,7 @@ COPY ./Geocoding-Web-Service/requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-COPY ./Geocoding-Web-Service/* ./
-
-RUN ls templates
+COPY ./Geocoding-Web-Service/ ./
 
 RUN rm requirements.txt
 
@@ -41,11 +39,7 @@ WORKDIR /var/www/html/Geocoding-Web-Service/
 ENV VIRTUAL_ENV=/var/www/html/Geocoding-Web-Service/.venv/bin \
     PATH="/var/www/html/Geocoding-Web-Service/.venv/bin:$PATH"
 
-COPY --from=reqs /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-
 COPY --from=reqs --chown=nonroot:nonroot /var/www/html/Geocoding-Web-Service ./
-
-COPY --from=reqs --chown=nonroot:nonroot /var/www/html/Geocoding-Web-Service/templates ./
 
 EXPOSE 5000
 
